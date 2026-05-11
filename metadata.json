@@ -1,0 +1,6 @@
+{
+  "name": "PlantIn",
+  "description": "A comprehensive plant care companion, community, and garden planning application.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": []
+}

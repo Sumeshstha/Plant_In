@@ -13,12 +13,21 @@ export default function RoomPlanner() {
   const [activeRoomId, setActiveRoomId] = useState(spaceIdFromQuery || spaces[0]?.id || '');
   const [isAddingSpace, setIsAddingSpace] = useState(false);
   const [newSpaceName, setNewSpaceName] = useState('');
+  const [layoutDensity, setLayoutDensity] = useState(() => localStorage.getItem('pref-density') || 'compact');
 
   useEffect(() => {
     if (spaceIdFromQuery) {
       setActiveRoomId(spaceIdFromQuery);
     }
   }, [spaceIdFromQuery]);
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setLayoutDensity(localStorage.getItem('pref-density') || 'compact');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const handleRoomChange = (id: string) => {
     setActiveRoomId(id);
@@ -54,14 +63,15 @@ export default function RoomPlanner() {
         </button>
       </header>
 
-      <main className="pt-20 flex-1 flex flex-col p-6 pb-32">
-        <div className="flex gap-3 overflow-x-auto hide-scrollbar pb-4">
+      <main className={layoutDensity === 'compact' ? "pt-16 flex-1 flex flex-col p-4 pb-24" : "pt-20 flex-1 flex flex-col p-6 pb-32"}>
+        <div className={`flex overflow-x-auto hide-scrollbar ${layoutDensity === 'compact' ? 'gap-2 pb-3' : 'gap-3 pb-4'}`}>
           {spaces.map(room => (
             <button
               key={room.id}
               onClick={() => handleRoomChange(room.id)}
-              className={`px-6 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-all
+              className={`rounded-full whitespace-nowrap transition-all font-semibold
                 ${activeRoomId === room.id ? 'bg-primary text-on-primary shadow-md' : 'bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest'}
+                ${layoutDensity === 'compact' ? 'px-4 py-2 text-xs' : 'px-6 py-2.5 text-sm'}
               `}
             >
               {room.name}
@@ -69,7 +79,7 @@ export default function RoomPlanner() {
           ))}
           <button 
             onClick={() => setIsAddingSpace(true)}
-            className="w-10 h-10 rounded-full bg-surface-container border-2 border-dashed border-outline-variant flex items-center justify-center shrink-0 hover:bg-surface-container-high transition-colors"
+            className={`${layoutDensity === 'compact' ? 'w-8 h-8' : 'w-10 h-10'} rounded-full bg-surface-container border-2 border-dashed border-outline-variant flex items-center justify-center shrink-0 hover:bg-surface-container-high transition-colors`}
           >
             <Plus className="w-5 h-5 text-outline" />
           </button>
@@ -121,7 +131,7 @@ export default function RoomPlanner() {
         </AnimatePresence>
 
         {/* Interactive Canvas Area */}
-        <div className="flex-1 bg-surface-container-low rounded-3xl relative mt-4 overflow-hidden border-4 border-surface shadow-inner group">
+        <div className={`flex-1 bg-surface-container-low rounded-3xl relative overflow-hidden border-4 border-surface shadow-inner group ${layoutDensity === 'compact' ? 'mt-2' : 'mt-4'}`}>
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 0)', backgroundSize: '24px 24px' }} />
           
           <AnimatePresence>
@@ -131,35 +141,35 @@ export default function RoomPlanner() {
                   key={plant.id}
                   drag
                   dragMomentum={false}
-                  initial={{ left: `${(idx * 25) + 10}%`, top: `${(idx * 15) + 20}%` }}
-                  className="absolute w-24 h-24 cursor-grab active:cursor-grabbing group/plant"
+                  initial={{ left: `${(idx * 20) + 10}%`, top: `${(idx * 15) + 15}%` }}
+                  className={`absolute cursor-grab active:cursor-grabbing group/plant ${layoutDensity === 'compact' ? 'w-20 h-20' : 'w-24 h-24'}`}
                 >
                   <div className="relative w-full h-full">
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] font-bold px-3 py-1 rounded-full opacity-0 group-hover/plant:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] font-bold px-3 py-1 rounded-full opacity-0 group-hover/plant:opacity-100 transition-opacity whitespace-nowrap shadow-xl z-20">
                       {plant.name}
                     </div>
                     <div className="w-full h-full rounded-full border-4 border-white shadow-lg overflow-hidden bg-primary/10">
                       <img src={plant.image} alt={plant.name} className="w-full h-full object-cover" />
                     </div>
-                    <div className="absolute -bottom-2 -right-2 bg-white p-1.5 rounded-full shadow-md">
-                      <Move className="w-4 h-4 text-primary" />
+                    <div className={`absolute -bottom-1.5 -right-1.5 bg-white rounded-full shadow-md ${layoutDensity === 'compact' ? 'p-1' : 'p-1.5'}`}>
+                      <Move className={`text-primary ${layoutDensity === 'compact' ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
                     </div>
                   </div>
                 </motion.div>
               ))
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 opacity-40">
-                <LayoutGrid className="w-16 h-16 mb-4" />
-                <p className="font-bold">No plants in this space yet.</p>
-                <p className="text-sm">Go to your garden to assign plants here.</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 opacity-40">
+                <LayoutGrid className="w-12 h-12 mb-3" />
+                <p className="font-bold text-sm">No plants in this space yet.</p>
+                <p className="text-xs mt-1">Go to your garden to assign plants here.</p>
               </div>
             )}
           </AnimatePresence>
 
-          <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between">
-            <div className="bg-white/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/40 flex items-center gap-3">
-              <LayoutGrid className="w-4 h-4 text-primary" />
-              <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface">Grid: 24px</span>
+          <div className={`absolute flex items-center justify-between ${layoutDensity === 'compact' ? 'bottom-4 left-4 right-4' : 'bottom-6 left-6 right-6'}`}>
+            <div className="bg-white/40 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/40 flex items-center gap-2">
+              <LayoutGrid className="w-3.5 h-3.5 text-primary" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-on-surface">Grid: 24px</span>
             </div>
             {activeSpace && (
               <button 
@@ -169,9 +179,9 @@ export default function RoomPlanner() {
                     setActiveRoomId(spaces[0]?.id || '');
                   }
                 }}
-                className="p-3 bg-error-container/80 backdrop-blur-md text-on-error-container rounded-full shadow-xl hover:bg-error transition-colors"
+                className={`bg-error-container/80 backdrop-blur-md text-on-error-container rounded-full shadow-xl hover:bg-error transition-colors ${layoutDensity === 'compact' ? 'p-2.5' : 'p-3'}`}
               >
-                <Trash2 className="w-6 h-6" />
+                <Trash2 className={layoutDensity === 'compact' ? 'w-5 h-5' : 'w-6 h-6'} />
               </button>
             )}
           </div>

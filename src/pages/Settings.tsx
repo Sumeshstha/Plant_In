@@ -1,22 +1,50 @@
-import { ArrowLeft, Bell, Shield, Languages, Ruler, Moon, HelpCircle, Info, ChevronRight, LogOut, Lock, User, Check } from 'lucide-react';
+import { ArrowLeft, Bell, Shield, Languages, Ruler, Moon, HelpCircle, Info, ChevronRight, LogOut, Lock, User, Check, Menu, Sliders } from 'lucide-react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function Settings() {
   const navigate = useNavigate();
+  const { openSidebar } = useOutletContext<{ openSidebar: () => void }>();
   const [activeSub, setActiveSub] = useState<string | null>(null);
-  const [theme, setTheme] = useState('system');
-  const [language, setLanguage] = useState('en');
-  const [units, setUnits] = useState('metric');
+  
+  const [theme, setTheme] = useState(() => localStorage.getItem('pref-theme') || 'system');
+  const [language, setLanguage] = useState(() => localStorage.getItem('pref-language') || 'en');
+  const [units, setUnits] = useState(() => localStorage.getItem('pref-units') || 'metric');
+  const [layoutDensity, setLayoutDensity] = useState(() => localStorage.getItem('pref-density') || 'compact');
 
-  const [notifications, setNotifications] = useState({
-    watering: true,
-    misting: true,
-    feeding: false,
-    community: true,
-    news: false
+  const [notifications, setNotifications] = useState(() => {
+    const saved = localStorage.getItem('pref-notifications');
+    return saved ? JSON.parse(saved) : {
+      watering: true,
+      misting: true,
+      feeding: false,
+      community: true,
+      news: false
+    };
   });
+
+  useEffect(() => {
+    localStorage.setItem('pref-theme', theme);
+  }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('pref-language', language);
+  }, [language]);
+
+  useEffect(() => {
+    localStorage.setItem('pref-units', units);
+  }, [units]);
+
+  useEffect(() => {
+    localStorage.setItem('pref-density', layoutDensity);
+    // Dispatch custom event to let other mounted components know of a sync if needed
+    window.dispatchEvent(new Event('storage'));
+  }, [layoutDensity]);
+
+  useEffect(() => {
+    localStorage.setItem('pref-notifications', JSON.stringify(notifications));
+  }, [notifications]);
 
   const toggleNotification = (key: keyof typeof notifications) => {
     setNotifications(prev => ({ ...prev, [key]: !prev[key] }));
@@ -28,6 +56,7 @@ export default function Settings() {
       items: [
         { icon: User, label: 'Profile Information', sub: 'Elena Green, Level 12', path: '/profile/edit' },
         { icon: Moon, label: 'Appearance', sub: theme.charAt(0).toUpperCase() + theme.slice(1), id: 'appearance' },
+        { icon: Sliders, label: 'Display Density', sub: layoutDensity === 'compact' ? 'Compact (Mobile Optimized)' : 'Comfortable (Standard)', id: 'layoutDensity' },
         { icon: Languages, label: 'Language', sub: language === 'en' ? 'English (US)' : language === 'es' ? 'Español' : 'Français', id: 'language' },
         { icon: Ruler, label: 'Units', sub: units === 'metric' ? 'Metric (Celsius, cm)' : 'Imperial (Fahrenheit, in)', id: 'units' },
       ]
@@ -43,14 +72,22 @@ export default function Settings() {
 
   return (
     <div className="bg-background min-h-screen">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md px-6 h-16 flex items-center">
-        <button 
-          onClick={() => navigate(-1)}
-          className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95 mr-4"
-        >
-          <ArrowLeft className="w-6 h-6 text-primary" />
-        </button>
-        <h1 className="font-headline font-bold text-xl text-primary tracking-tight">Settings</h1>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md px-6 h-16 flex items-center justify-between border-b border-outline-variant/10">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95"
+          >
+            <ArrowLeft className="w-6 h-6 text-primary" />
+          </button>
+          <button 
+            onClick={openSidebar}
+            className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95"
+          >
+            <Menu className="w-6 h-6 text-primary" />
+          </button>
+          <h1 className="font-headline font-bold text-xl text-primary tracking-tight">Settings</h1>
+        </div>
       </header>
 
       <main className="pt-24 px-6 max-w-2xl mx-auto pb-32 space-y-10">
@@ -200,6 +237,27 @@ export default function Settings() {
                         <p className="text-xs text-on-surface-variant">{u.sub}</p>
                       </div>
                       {units === u.id && <Check className="w-5 h-5 text-primary" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {activeSub === 'layoutDensity' && (
+                <div className="space-y-4">
+                  {[
+                    { id: 'compact', label: 'Compact Spacing', sub: 'Optimized for small mobile screens. Snugger rows, less vertical gaps, and auto-adjusted card sizing so everything is at your fingertips.' },
+                    { id: 'comfortable', label: 'Comfortable Spacing', sub: 'Standard layout with generous spacing, larger margins, and roomier gutters.' }
+                  ].map(d => (
+                    <button 
+                      key={d.id}
+                      onClick={() => setLayoutDensity(d.id)}
+                      className={`w-full p-5 rounded-2xl flex items-center justify-between border-2 transition-all text-left ${layoutDensity === d.id ? 'border-primary bg-primary/5' : 'border-outline-variant/10 bg-surface-container-low'}`}
+                    >
+                      <div className="pr-4">
+                        <p className="font-bold">{d.label}</p>
+                        <p className="text-xs text-on-surface-variant mt-1">{d.sub}</p>
+                      </div>
+                      {layoutDensity === d.id && <Check className="w-5 h-5 text-primary shrink-0" />}
                     </button>
                   ))}
                 </div>

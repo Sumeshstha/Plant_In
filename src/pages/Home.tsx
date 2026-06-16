@@ -1,17 +1,50 @@
 import { motion, AnimatePresence } from 'motion/react';
 import TopAppBar from '../components/TopAppBar';
-import { CheckCircle2, AlertCircle, Droplets, Wind, ChevronRight, Sun, Leaf, Check, Plus, X, Calendar } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Droplets, Wind, ChevronRight, Sun, Leaf, Check, Plus, X, Calendar, Sparkles, MapPin } from 'lucide-react';
 import { Link, useOutletContext } from 'react-router-dom';
 import { useGarden } from '../context/GardenContext';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function Home() {
   const { openSidebar } = useOutletContext<{ openSidebar: () => void }>();
-  const { tasks, spaces, tips, completeTask, addTask } = useGarden();
+  const { tasks, spaces, tips, completeTask, addTask, plants } = useGarden();
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [layoutDensity, setLayoutDensity] = useState(() => localStorage.getItem('pref-density') || 'compact');
+
+  useEffect(() => {
+    const handleStorage = () => {
+      setLayoutDensity(localStorage.getItem('pref-density') || 'compact');
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
   
   const pendingTasks = tasks.filter(t => !t.completed);
+
+  const findRoomForTask = (task: typeof tasks[0]) => {
+    let plantId = '';
+    if (task.id.startsWith('auto-water-')) {
+      plantId = task.id.replace('auto-water-', '');
+    } else if (task.id.startsWith('auto-feed-')) {
+      plantId = task.id.replace('auto-feed-', '');
+    } else {
+      const titleLower = task.title.toLowerCase();
+      const matchingPlant = plants.find(p => titleLower.includes(p.name.toLowerCase()));
+      if (matchingPlant) {
+        plantId = matchingPlant.id;
+      }
+    }
+
+    if (plantId) {
+      const plant = plants.find(p => p.id === plantId);
+      if (plant && plant.spaceId) {
+        const space = spaces.find(s => s.id === plant.spaceId);
+        return space ? space.name : null;
+      }
+    }
+    return null;
+  };
 
   const handleAddTask = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +62,7 @@ export default function Home() {
     <div className="bg-background min-h-screen">
       <TopAppBar showProfile showSearch title="PlantIn" onMenuClick={openSidebar} />
       
-      <main className="pt-20 px-6 space-y-10 pb-32">
+      <main className={layoutDensity === 'compact' ? "pt-16 px-4 space-y-6 pb-24 md:px-6 md:space-y-10" : "pt-20 px-6 space-y-10 pb-32"}>
         <AnimatePresence>
           {isAddingTask && (
             <motion.div 
@@ -74,25 +107,25 @@ export default function Home() {
         </AnimatePresence>
 
         {/* Hero Welcome */}
-        <section>
+        <section className={layoutDensity === 'compact' ? "mb-1" : ""}>
           <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            className="font-headline font-bold text-4xl text-on-surface tracking-tight mb-2"
+            className={`font-headline font-bold text-on-surface tracking-tight ${layoutDensity === 'compact' ? 'text-3xl mb-1' : 'text-4xl mb-2'}`}
           >
             Hello, Elena!
           </motion.h1>
-          <p className="font-body text-on-surface-variant text-lg">Your green oasis is thriving today.</p>
+          <p className={`font-body text-on-surface-variant ${layoutDensity === 'compact' ? 'text-sm' : 'text-lg'}`}>Your green oasis is thriving today.</p>
         </section>
 
         {/* Today's Tasks Summary */}
         <section>
-          <div className="bg-surface-container-low p-8 rounded-lg relative overflow-hidden group">
+          <div className={`bg-surface-container-low rounded-2xl relative overflow-hidden group transition-all duration-300 ${layoutDensity === 'compact' ? 'p-4 md:p-8' : 'p-8'}`}>
             <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary-fixed opacity-20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
             <div className="relative z-10">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="font-headline font-bold text-xl flex items-center gap-2">
-                  <CheckCircle2 className="w-6 h-6 text-primary" />
+              <div className={`flex items-center justify-between ${layoutDensity === 'compact' ? 'mb-4' : 'mb-6'}`}>
+                <h2 className={`font-headline font-bold flex items-center gap-2 ${layoutDensity === 'compact' ? 'text-lg' : 'text-xl'}`}>
+                  <CheckCircle2 className="w-5 h-5 text-primary" />
                   Today’s Tasks
                 </h2>
                 <div className="flex items-center gap-3">
@@ -107,35 +140,161 @@ export default function Home() {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <AnimatePresence>
-                  {pendingTasks.map((task) => (
-                    <motion.div 
-                      key={task.id} 
-                      layout
-                      exit={{ opacity: 0, x: -20 }}
-                      className="bg-surface-container-lowest p-5 rounded-lg flex items-center justify-between border-l-4 border-primary shadow-sm hover:shadow-md transition-shadow group/task"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary">
-                          {task.type === 'water' ? <Droplets className="w-6 h-6" /> : <Wind className="w-6 h-6" />}
-                        </div>
-                        <div>
-                          <p className="font-headline font-bold text-on-surface">{task.title}</p>
-                          <p className="font-body text-sm text-on-surface-variant">{task.subtitle}</p>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => completeTask(task.id)}
-                        className="w-10 h-10 rounded-full border-2 border-primary/20 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all active:scale-95 group-hover/task:border-primary"
-                      >
-                        <Check className="w-5 h-5" />
-                      </button>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+              {/* Grouped Tasks Section */}
+              <div className={layoutDensity === 'compact' ? "space-y-4" : "space-y-8"}>
+                {/* 1. Watering Routine Group */}
+                {pendingTasks.filter(t => t.type === 'water').length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-headline font-bold text-xs text-blue-500 dark:text-blue-400 capitalize tracking-widest flex items-center gap-1.5 px-1">
+                      <Droplets className="w-4 h-4 text-blue-500 shrink-0" />
+                      <span>Watering Routine</span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <AnimatePresence mode="popLayout">
+                        {pendingTasks.filter(t => t.type === 'water').map((task) => {
+                          const roomName = findRoomForTask(task);
+                          return (
+                            <motion.div 
+                              key={task.id} 
+                              layout
+                              exit={{ opacity: 0, x: -20 }}
+                              className={`bg-surface-container-lowest rounded-xl flex items-center justify-between border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow group/task ${layoutDensity === 'compact' ? 'p-3' : 'p-5'}`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`rounded-full flex items-center justify-center bg-blue-50 dark:bg-blue-950/40 text-blue-500 border border-blue-100 dark:border-blue-900/10 shrink-0 ${layoutDensity === 'compact' ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                                  <Droplets className={layoutDensity === 'compact' ? 'w-5 h-5' : 'w-6 h-6'} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className={`font-headline font-semibold text-on-surface truncate ${layoutDensity === 'compact' ? 'text-sm' : 'text-base'}`}>{task.title}</p>
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-on-surface-variant text-[11px] mt-0.5">
+                                    <span className="font-body font-medium">{task.subtitle}</span>
+                                    {roomName && (
+                                      <span className="inline-flex items-center gap-1 font-bold text-blue-600 dark:text-blue-400 bg-blue-500/5 dark:bg-blue-400/5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider shrink-0 w-max">
+                                        <MapPin className="w-2.5 h-2.5 text-blue-400" />
+                                        <span>{roomName}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => completeTask(task.id)}
+                                className={`rounded-full border-2 border-primary/20 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all active:scale-95 group-hover/task:border-primary shrink-0 ${layoutDensity === 'compact' ? 'w-8 h-8' : 'w-10 h-10'}`}
+                              >
+                                <Check className={layoutDensity === 'compact' ? 'w-4 h-4' : 'w-5 h-5'} />
+                              </button>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. Nourishment & Fertilizers Group */}
+                {pendingTasks.filter(t => t.type === 'feed').length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-headline font-bold text-xs text-amber-500 dark:text-amber-400 capitalize tracking-widest flex items-center gap-1.5 px-1">
+                      <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                      <span>Fertilizers & Nourishment</span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <AnimatePresence mode="popLayout">
+                        {pendingTasks.filter(t => t.type === 'feed').map((task) => {
+                          const roomName = findRoomForTask(task);
+                          return (
+                            <motion.div 
+                              key={task.id} 
+                              layout
+                              exit={{ opacity: 0, x: -20 }}
+                              className={`bg-surface-container-lowest rounded-xl flex items-center justify-between border-l-4 border-amber-500 shadow-sm hover:shadow-md transition-shadow group/task ${layoutDensity === 'compact' ? 'p-3' : 'p-5'}`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`rounded-full flex items-center justify-center bg-amber-50 dark:bg-amber-950/40 text-amber-500 border border-amber-100 dark:border-amber-900/10 shrink-0 ${layoutDensity === 'compact' ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                                  <Sparkles className={layoutDensity === 'compact' ? 'w-5 h-5' : 'w-6 h-6'} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className={`font-headline font-semibold text-on-surface truncate ${layoutDensity === 'compact' ? 'text-sm' : 'text-base'}`}>{task.title}</p>
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-on-surface-variant text-[11px] mt-0.5">
+                                    <span className="font-body font-medium">{task.subtitle}</span>
+                                    {roomName && (
+                                      <span className="inline-flex items-center gap-1 font-bold text-amber-600 dark:text-amber-400 bg-amber-500/5 dark:bg-amber-400/5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider shrink-0 w-max">
+                                        <MapPin className="w-2.5 h-2.5 text-amber-400" />
+                                        <span>{roomName}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => completeTask(task.id)}
+                                className={`rounded-full border-2 border-primary/20 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all active:scale-95 group-hover/task:border-primary shrink-0 ${layoutDensity === 'compact' ? 'w-8 h-8' : 'w-10 h-10'}`}
+                              >
+                                <Check className={layoutDensity === 'compact' ? 'w-4 h-4' : 'w-5 h-5'} />
+                              </button>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
+
+                {/* 3. Other Maintenance Chores */}
+                {pendingTasks.filter(t => t.type !== 'water' && t.type !== 'feed').length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-headline font-bold text-xs text-emerald-500 dark:text-emerald-400 capitalize tracking-widest flex items-center gap-1.5 px-1">
+                      <Wind className="w-4 h-4 text-emerald-500 shrink-0" />
+                      <span>Other Maintenance Chores</span>
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <AnimatePresence mode="popLayout">
+                        {pendingTasks.filter(t => t.type !== 'water' && t.type !== 'feed').map((task) => {
+                          const roomName = findRoomForTask(task);
+                          return (
+                            <motion.div 
+                              key={task.id} 
+                              layout
+                              exit={{ opacity: 0, x: -20 }}
+                              className={`bg-surface-container-lowest rounded-xl flex items-center justify-between border-l-4 border-emerald-500 shadow-sm hover:shadow-md transition-shadow group/task ${layoutDensity === 'compact' ? 'p-3' : 'p-5'}`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`rounded-full flex items-center justify-center bg-primary-fixed text-primary shrink-0 ${layoutDensity === 'compact' ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                                  <Wind className={layoutDensity === 'compact' ? 'w-5 h-5' : 'w-6 h-6'} />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className={`font-headline font-semibold text-on-surface truncate ${layoutDensity === 'compact' ? 'text-sm' : 'text-base'}`}>{task.title}</p>
+                                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 text-on-surface-variant text-[11px] mt-0.5">
+                                    <span className="font-body font-medium">{task.subtitle}</span>
+                                    {roomName && (
+                                      <span className="inline-flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/5 dark:bg-emerald-400/5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider shrink-0 w-max">
+                                        <MapPin className="w-2.5 h-2.5 text-emerald-400" />
+                                        <span>{roomName}</span>
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => completeTask(task.id)}
+                                className={`rounded-full border-2 border-primary/20 flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all active:scale-95 group-hover/task:border-primary shrink-0 ${layoutDensity === 'compact' ? 'w-8 h-8' : 'w-10 h-10'}`}
+                              >
+                                <Check className={layoutDensity === 'compact' ? 'w-4 h-4' : 'w-5 h-5'} />
+                              </button>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
+
                 {pendingTasks.length === 0 && (
-                  <p className="text-center py-6 text-on-surface-variant italic w-full">All tasks completed! Coffee time? ☕</p>
+                  <div className="text-center py-10 bg-surface-container-lowest rounded-2xl border border-dashed border-outline-variant/20">
+                    <CheckCircle2 className="w-12 h-12 text-primary mx-auto mb-3 opacity-60 animate-bounce" />
+                    <p className="font-headline font-bold text-on-surface">All tasks completed! Coffee time? ☕</p>
+                    <p className="text-xs text-on-surface-variant mt-1">Your plants are fully nurtured, satisfied, and happy!</p>
+                  </div>
                 )}
               </div>
             </div>
@@ -144,26 +303,26 @@ export default function Home() {
 
         {/* Smart Tools Section */}
         <section>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-headline font-bold text-2xl">Smart Tools</h2>
-            <Link to="/tools" className="text-primary font-bold text-sm uppercase tracking-wider hover:opacity-70 transition-opacity">View All</Link>
+          <div className={`flex items-center justify-between ${layoutDensity === 'compact' ? 'mb-4' : 'mb-8'}`}>
+            <h2 className={`font-headline font-bold ${layoutDensity === 'compact' ? 'text-lg' : 'text-xl'}`}>Smart Tools</h2>
+            <Link to="/tools" className="text-primary font-bold text-xs uppercase tracking-wider hover:opacity-70 transition-opacity">View All</Link>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <Link to="/tools/watering" className="bg-surface-container-low p-5 rounded-2xl flex flex-col items-center gap-3 transition-all hover:bg-surface-container active:scale-95 text-center">
-              <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
-                <Droplets className="w-6 h-6" />
+          <div className={`grid grid-cols-3 ${layoutDensity === 'compact' ? 'gap-3' : 'gap-4'}`}>
+            <Link to="/tools/watering" className={`bg-surface-container-low rounded-2xl flex flex-col items-center transition-all hover:bg-surface-container active:scale-95 text-center ${layoutDensity === 'compact' ? 'p-3 gap-1.5' : 'p-5 gap-3'}`}>
+              <div className={`bg-blue-100 text-blue-600 rounded-full flex items-center justify-center ${layoutDensity === 'compact' ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                <Droplets className={layoutDensity === 'compact' ? 'w-5 h-5' : 'w-6 h-6'} />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Watering</span>
             </Link>
-            <Link to="/tools/calendar" className="bg-surface-container-low p-5 rounded-2xl flex flex-col items-center gap-3 transition-all hover:bg-surface-container active:scale-95 text-center">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-                <Calendar className="w-6 h-6" />
+            <Link to="/tools/calendar" className={`bg-surface-container-low rounded-2xl flex flex-col items-center transition-all hover:bg-surface-container active:scale-95 text-center ${layoutDensity === 'compact' ? 'p-3 gap-1.5' : 'p-5 gap-3'}`}>
+              <div className={`bg-primary/10 text-primary rounded-full flex items-center justify-center ${layoutDensity === 'compact' ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                <Calendar className={layoutDensity === 'compact' ? 'w-5 h-5' : 'w-6 h-6'} />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Calendar</span>
             </Link>
-            <Link to="/tools/repotting" className="bg-surface-container-low p-5 rounded-2xl flex flex-col items-center gap-3 transition-all hover:bg-surface-container active:scale-95 text-center">
-              <div className="w-12 h-12 bg-tertiary/10 text-tertiary rounded-full flex items-center justify-center">
-                <Leaf className="w-6 h-6" />
+            <Link to="/tools/repotting" className={`bg-surface-container-low rounded-2xl flex flex-col items-center transition-all hover:bg-surface-container active:scale-95 text-center ${layoutDensity === 'compact' ? 'p-3 gap-1.5' : 'p-5 gap-3'}`}>
+              <div className={`bg-tertiary/10 text-tertiary rounded-full flex items-center justify-center ${layoutDensity === 'compact' ? 'w-10 h-10' : 'w-12 h-12'}`}>
+                <Leaf className={layoutDensity === 'compact' ? 'w-5 h-5' : 'w-6 h-6'} />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Repot</span>
             </Link>
@@ -172,29 +331,29 @@ export default function Home() {
 
         {/* My Spaces Grid */}
         <section>
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-headline font-bold text-2xl">My Spaces</h2>
-            <Link to="/room-planner" className="text-primary font-bold text-sm uppercase tracking-wider hover:opacity-70 transition-opacity">Edit Spaces</Link>
+          <div className={`flex items-center justify-between ${layoutDensity === 'compact' ? 'mb-4' : 'mb-8'}`}>
+            <h2 className={`font-headline font-bold ${layoutDensity === 'compact' ? 'text-lg' : 'text-xl'}`}>My Spaces</h2>
+            <Link to="/room-planner" className="text-primary font-bold text-xs uppercase tracking-wider hover:opacity-70 transition-opacity">Edit Spaces</Link>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 ${layoutDensity === 'compact' ? 'gap-4 font-sans' : 'gap-8 font-sans'}`}>
             {spaces.map((space) => (
               <Link key={space.id} to={`/space/${space.id}`} className="group cursor-pointer">
-                <div className="relative h-72 rounded-lg overflow-hidden mb-4 shadow-sm hover:shadow-xl transition-all duration-500">
+                <div className={`relative rounded-2xl overflow-hidden transition-all duration-500 shadow-sm hover:shadow-xl ${layoutDensity === 'compact' ? 'h-44 md:h-52 mb-2' : 'h-72 mb-4'}`}>
                   <img src={space.image} alt={space.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-on-surface/60 to-transparent"></div>
-                  <div className="absolute bottom-4 left-5 right-5 flex justify-between items-end">
+                  <div className="absolute bottom-3 left-4 right-4 flex justify-between items-end">
                     <div>
-                      <h3 className="text-white font-headline font-bold text-xl">{space.name}</h3>
-                      <p className="text-white/80 font-body text-sm">{space.plantCount} Plants total</p>
+                      <h3 className={`text-white font-headline font-bold ${layoutDensity === 'compact' ? 'text-lg' : 'text-xl'}`}>{space.name}</h3>
+                      <p className="text-white/80 font-body text-xs">{space.plantCount} Plants total</p>
                     </div>
-                    <div className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full border border-white/20">
-                      <span className="text-white text-xs font-bold">{space.status}</span>
+                    <div className="bg-white/20 backdrop-blur-md px-2.5 py-0.5 rounded-full border border-white/20">
+                      <span className="text-white text-[10px] font-bold">{space.status}</span>
                     </div>
                   </div>
                 </div>
                 {(space as any).alert && (
-                  <div className="px-1 flex items-center gap-2 text-error text-sm font-bold animate-pulse">
-                    <AlertCircle className="w-4 h-4" />
+                  <div className="px-1 flex items-center gap-1.5 text-error text-xs font-bold animate-pulse">
+                    <AlertCircle className="w-3.5 h-3.5" />
                     {(space as any).alert}
                   </div>
                 )}
@@ -204,16 +363,16 @@ export default function Home() {
         </section>
 
         {/* Quick Tips Carousel */}
-        <section className="pb-32">
-          <h2 className="font-headline font-bold text-2xl mb-6">Expert Tips for Today</h2>
-          <div className="flex gap-6 overflow-x-auto hide-scrollbar pb-4 -mx-2 px-2">
+        <section className={layoutDensity === 'compact' ? "pb-20" : "pb-32"}>
+          <h2 className={`font-headline font-bold mb-4 ${layoutDensity === 'compact' ? 'text-lg' : 'text-xl'}`}>Expert Tips for Today</h2>
+          <div className="flex gap-4 overflow-x-auto hide-scrollbar pb-4 -mx-2 px-2">
             {tips.map((tip) => (
-              <div key={tip.id} className={`flex-shrink-0 w-80 ${tip.color} p-6 rounded-lg relative overflow-hidden`}>
+              <div key={tip.id} className={`flex-shrink-0 ${tip.color} rounded-2xl relative overflow-hidden transition-all ${layoutDensity === 'compact' ? 'w-72 p-4' : 'w-80 p-6'}`}>
                 <div className="absolute -bottom-4 -right-4 opacity-10">
-                  {tip.icon === 'Sun' ? <Sun className="w-24 h-24" /> : <Leaf className="w-24 h-24" />}
+                  {tip.icon === 'Sun' ? <Sun className="w-20 h-20" /> : <Leaf className="w-20 h-20" />}
                 </div>
-                <h4 className="font-headline font-bold text-on-surface text-lg mb-2">{tip.title}</h4>
-                <p className="font-body text-sm text-on-surface-variant font-medium">{tip.content}</p>
+                <h4 className="font-headline font-bold text-on-surface text-base mb-1.5">{tip.title}</h4>
+                <p className="font-body text-xs text-on-surface-variant font-medium leading-relaxed">{tip.content}</p>
               </div>
             ))}
           </div>

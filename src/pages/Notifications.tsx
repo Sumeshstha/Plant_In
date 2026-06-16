@@ -1,5 +1,5 @@
-import { ArrowLeft, Bell, Calendar, Droplets, Info, Star, ChevronRight, MessageSquare, Trash2, Check, Settings as SettingsIcon } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Bell, Calendar, Droplets, Info, Star, ChevronRight, MessageSquare, Trash2, Check, Settings as SettingsIcon, Menu } from 'lucide-react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { useState } from 'react';
 
@@ -16,6 +16,7 @@ interface Notification {
 
 export default function Notifications() {
   const navigate = useNavigate();
+  const { openSidebar } = useOutletContext<{ openSidebar: () => void }>();
   const [notifications, setNotifications] = useState<Notification[]>([
     { 
       id: 1, 
@@ -80,9 +81,12 @@ export default function Notifications() {
   return (
     <div className="bg-background min-h-screen">
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md px-6 h-16 flex items-center justify-between border-b border-outline-variant/10">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95">
             <ArrowLeft className="w-6 h-6 text-primary" />
+          </button>
+          <button onClick={openSidebar} className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95">
+            <Menu className="w-6 h-6 text-primary" />
           </button>
           <h1 className="font-headline font-bold text-xl text-primary">Notifications</h1>
         </div>

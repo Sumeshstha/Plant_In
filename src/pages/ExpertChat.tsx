@@ -1,10 +1,11 @@
-import { ArrowLeft, Send, Sparkles, Paperclip, MoreVertical, CheckCheck } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, Send, Sparkles, Paperclip, MoreVertical, CheckCheck, Menu } from 'lucide-react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 
 export default function ExpertChat() {
   const navigate = useNavigate();
+  const { openSidebar } = useOutletContext<{ openSidebar: () => void }>() || { openSidebar: () => {} };
   const [message, setMessage] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -50,9 +51,12 @@ export default function ExpertChat() {
   return (
     <div className="bg-background h-screen flex flex-col">
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md px-6 h-20 flex items-center justify-between border-b border-outline-variant/5">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95">
             <ArrowLeft className="w-6 h-6 text-primary" />
+          </button>
+          <button onClick={openSidebar} className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95">
+            <Menu className="w-6 h-6 text-primary" />
           </button>
           <div className="flex items-center gap-3">
             <div className="relative">

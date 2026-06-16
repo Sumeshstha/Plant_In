@@ -145,9 +145,15 @@ export default function Tools() {
                     <p className="text-xs text-on-surface-variant font-medium">{item.sub}</p>
                   </div>
                 </div>
-                <div className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${notifications[item.id as keyof typeof notifications] ? 'bg-primary' : 'bg-surface-container-highest'}`}>
-                    <div className={`w-4 h-4 bg-white rounded-full absolute transition-all ${notifications[item.id as keyof typeof notifications] ? 'right-1' : 'left-1'}`} />
-                </div>
+                <button 
+                  onClick={() => toggleNotification(item.id as keyof typeof notifications)}
+                  className={`w-12 h-6 rounded-full transition-colors relative flex items-center ${notifications[item.id as keyof typeof notifications] ? 'bg-primary' : 'bg-surface-container-highest'}`}
+                >
+                  <motion.div 
+                    animate={{ x: notifications[item.id as keyof typeof notifications] ? 24 : 4 }}
+                    className="w-4 h-4 bg-white rounded-full absolute shadow-sm" 
+                  />
+                </button>
               </div>
             ))}
           </div>

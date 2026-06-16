@@ -1,18 +1,25 @@
+import { ArrowLeft, Droplets, Info, Calculator, Sun, Thermometer, Container, Menu, Sparkles } from 'lucide-react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Droplets, Info, Calculator, Sun, Thermometer, Container } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useGarden } from '../context/GardenContext';
 
 export default function WateringCalculator() {
   const navigate = useNavigate();
+  const { openSidebar } = useOutletContext<{ openSidebar: () => void }>();
+  const { plants, updatePlant } = useGarden();
+
   const [plantType, setPlantType] = useState('succulent');
   const [potSize, setPotSize] = useState('medium');
   const [lightLevel, setLightLevel] = useState('bright');
   const [temperature, setTemperature] = useState('22');
+  
   const [result, setResult] = useState<{ volume: string; frequency: string } | null>(null);
+  const [freqDays, setFreqDays] = useState<number>(7);
+  const [selectedPlantId, setSelectedPlantId] = useState('');
+  const [justApplied, setJustApplied] = useState(false);
 
   const calculate = () => {
-    // Basic logic for demonstration
     let baseFreq = 7;
     let baseVol = 250;
 
@@ -30,21 +37,28 @@ export default function WateringCalculator() {
     if (lightLevel === 'direct') baseFreq -= 1;
     if (lightLevel === 'low') baseFreq += 4;
 
-    const temp = parseInt(temperature);
+    const temp = parseInt(temperature, 10);
     if (temp > 28) baseFreq -= 1;
     if (temp < 15) baseFreq += 3;
 
+    const finalFreq = Math.max(1, baseFreq);
+
     setResult({
-      frequency: `Every ${Math.max(1, baseFreq)} days`,
+      frequency: `Every ${finalFreq} days`,
       volume: `${Math.round(baseVol)}ml`
     });
+    setFreqDays(finalFreq);
+    setJustApplied(false);
   };
 
   return (
     <div className="bg-background min-h-screen">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md px-6 h-16 flex items-center gap-4 border-b border-outline-variant/10">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-surface-container rounded-full transition-colors">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md px-6 h-16 flex items-center gap-2 border-b border-outline-variant/10">
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95">
           <ArrowLeft className="w-6 h-6 text-primary" />
+        </button>
+        <button onClick={openSidebar} className="p-2 hover:bg-surface-container rounded-full transition-colors active:scale-95">
+          <Menu className="w-6 h-6 text-primary" />
         </button>
         <h1 className="font-headline font-bold text-xl text-primary">Watering Calculator</h1>
       </header>
@@ -133,19 +147,64 @@ export default function WateringCalculator() {
               <div className="grid grid-cols-2 gap-6 text-center">
                 <div className="space-y-2">
                   <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto">
-                    <Sun className="w-6 h-6" />
+                    <Sun className="w-6 h-6 text-blue-500" />
                   </div>
                   <p className="text-[10px] uppercase font-bold text-on-surface-variant">Frequency</p>
                   <p className="font-headline font-bold text-lg">{result.frequency}</p>
                 </div>
                 <div className="space-y-2">
                   <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto">
-                    <Droplets className="w-6 h-6" />
+                    <Droplets className="w-6 h-6 text-blue-500" />
                   </div>
                   <p className="text-[10px] uppercase font-bold text-on-surface-variant">Water Volume</p>
                   <p className="font-headline font-bold text-lg">{result.volume}</p>
                 </div>
               </div>
+
+              {/* Apply directly to any plant in collection */}
+              <div className="pt-6 border-t border-outline-variant/10 space-y-4">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block text-center">
+                  Apply This Schedule to an Existing Plant
+                </label>
+                <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+                  <select
+                    value={selectedPlantId}
+                    onChange={e => {
+                      setSelectedPlantId(e.target.value);
+                      setJustApplied(false);
+                    }}
+                    className="flex-1 bg-surface-container-low border-none rounded-2xl py-3 px-4 text-xs font-body focus:ring-2 focus:ring-primary text-on-surface"
+                  >
+                    <option value="">-- Choose Plant --</option>
+                    {plants.map(p => (
+                      <option key={p.id} value={p.id}>{p.name} ({p.scientificName})</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => {
+                      if (!selectedPlantId) return;
+                      const originalPlant = plants.find(p => p.id === selectedPlantId);
+                      if (originalPlant) {
+                        updatePlant(selectedPlantId, {
+                          watering: `${freqDays} Days`,
+                          wateringIntervalDays: freqDays
+                        });
+                        setJustApplied(true);
+                      }
+                    }}
+                    disabled={!selectedPlantId}
+                    className="py-3 px-6 bg-primary text-on-primary font-bold text-xs rounded-2xl active:scale-95 transition-all disabled:opacity-50 shrink-0"
+                  >
+                    Apply Schedule
+                  </button>
+                </div>
+                {justApplied && (
+                  <p className="text-center font-bold text-green-600 text-[11px] animate-pulse">
+                    ✓ Schedule successfully matched! Cycles updated for selected plant.
+                  </p>
+                )}
+              </div>
+
               <p className="text-[10px] text-center text-on-surface-variant font-medium uppercase tracking-widest">
                 * Based on average room conditions
               </p>

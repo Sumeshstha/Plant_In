@@ -47,9 +47,9 @@ export default function App() {
           <Route path="/tools/watering" element={<WateringCalculator />} />
           <Route path="/tools/calendar" element={<CareCalendar />} />
           <Route path="/tools/repotting" element={<RepottingChecker />} />
+          <Route path="/scan" element={<Scan />} />
+          <Route path="/chat" element={<ExpertChat />} />
         </Route>
-        <Route path="/scan" element={<Scan />} />
-        <Route path="/chat" element={<ExpertChat />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />

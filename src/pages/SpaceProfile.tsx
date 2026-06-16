@@ -16,6 +16,14 @@ export default function SpaceProfile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(space?.name || '');
   const [editedStatus, setEditedStatus] = useState(space?.status || 'Stable');
+  const [editedFeatures, setEditedFeatures] = useState<string[]>(space?.featuresImages || []);
+
+  const openEditModal = () => {
+    setEditedName(space?.name || '');
+    setEditedStatus(space?.status || 'Stable');
+    setEditedFeatures(space?.featuresImages || []);
+    setIsEditing(true);
+  };
 
   const handlePhotoUpdate = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -40,7 +48,8 @@ export default function SpaceProfile() {
   const handleSave = () => {
     updateSpace(space.id, {
       name: editedName,
-      status: editedStatus as any
+      status: editedStatus as any,
+      featuresImages: editedFeatures
     });
     setIsEditing(false);
   };
@@ -80,7 +89,7 @@ export default function SpaceProfile() {
           </div>
           <div className="flex gap-2">
             <button 
-              onClick={() => setIsEditing(true)}
+              onClick={openEditModal}
               className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-all shadow-lg"
             >
               <Edit2 className="w-6 h-6" />
@@ -170,6 +179,20 @@ export default function SpaceProfile() {
           </div>
         </section>
 
+        {/* Space Features & Captures Section */}
+        {space.featuresImages && space.featuresImages.length > 0 && (
+          <section className="space-y-4">
+            <h2 className="font-headline font-bold text-2xl">⚡ Space Features & Captures</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {space.featuresImages.map((imgUrl, fIdx) => (
+                <div key={fIdx} className="aspect-square rounded-3xl overflow-hidden border border-outline-variant/10 shadow-sm relative group bg-surface-container-low">
+                  <img src={imgUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" alt={`Feature ${fIdx + 1}`} />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Environmental Indicators (Mocked) */}
         <section className="bg-surface-container-lowest p-8 rounded-[40px] border border-outline-variant/10 space-y-6">
           <h3 className="font-headline font-bold text-xl">Room Conditions</h3>
@@ -236,6 +259,47 @@ export default function SpaceProfile() {
                     <option value="Critical">Critical</option>
                     <option value="Need Water">Need Water</option>
                   </select>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant ml-1">
+                      Space Features & Captures
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-surface-container-low rounded-2xl min-h-[50px] items-center border border-dashed border-outline-variant/30">
+                    {editedFeatures.map((featImg, idx) => (
+                      <div key={idx} className="relative w-12 h-12 rounded-xl overflow-hidden group border border-outline-variant/20">
+                        <img src={featImg} className="w-full h-full object-cover" alt="" />
+                        <button
+                          type="button"
+                          onClick={() => setEditedFeatures(prev => prev.filter((_, i) => i !== idx))}
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    <label className="w-12 h-12 rounded-xl border border-dashed border-primary/40 hover:bg-primary/5 flex flex-col items-center justify-center cursor-pointer text-primary transition-all">
+                      <span className="text-xl font-bold leading-none">+</span>
+                      <span className="text-[9px] font-black uppercase tracking-tight">Add</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onloadend = () => {
+                              setEditedFeatures(prev => [...prev, reader.result as string]);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
                 </div>
               </div>
               <button 
